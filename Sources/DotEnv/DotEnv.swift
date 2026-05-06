@@ -25,11 +25,16 @@ public enum DotEnv: Sendable {
         var seen: [String: String] = [:]
         for (text, lineNumber) in lines {
             let raw = try Parser.parseStatement(text, lineNumber: lineNumber)
-            // Expansion lands in Task 11. For now: literal pass-through.
-            let value = raw.value
+            let value: String
+            if raw.expandsVariables {
+                value = try Expansion.expand(raw.value, lineNumber: raw.line) { name in
+                    seen[name] ?? baseEnvironment[name]
+                }
+            } else {
+                value = raw.value
+            }
             entries.append(Entry(key: raw.key, value: value, line: raw.line))
             seen[raw.key] = value
-            _ = baseEnvironment    // unused until Task 11
         }
         return entries
     }

@@ -239,7 +239,12 @@ enum Parser {
                 case "\\": out.append("\\")
                 case "\"": out.append("\"")
                 case "'":  out.append("'")
-                case "$":  out.append("$")
+                case "$":  out.append("\u{0001}$")   // U+0001 (SOH) is the internal marker meaning
+                                                     // "the next char is literal, do not interpret
+                                                     // as expansion". The expander strips it. We
+                                                     // assume real .env values never contain SOH
+                                                     // bytes; if they do, callers should use a
+                                                     // single-quoted value (no expansion at all).
                 default:
                     throw .invalidEscape(line: lineNumber)
                 }
