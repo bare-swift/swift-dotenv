@@ -173,8 +173,28 @@ enum Parser {
                 return (try readDoubleQuoted(s, lineNumber: lineNumber), false, true)
             }
         }
-        let trimmed = trimTrailing(s)
+        // Unquoted: scan until inline comment delimiter (whitespace + '#'),
+        // then trim trailing whitespace.
+        let stripped = stripInlineComment(s)
+        let trimmed = trimTrailing(stripped)
         return (String(trimmed), false, true)
+    }
+
+    /// Return the prefix of `s` up to (but not including) the first inline
+    /// comment delimiter. An inline comment starts with `#` only when
+    /// preceded by at least one whitespace character (or the start of value).
+    static func stripInlineComment(_ s: Substring) -> Substring {
+        var i = s.startIndex
+        var lastWasSpace = true   // start of value counts as whitespace-preceded
+        while i < s.endIndex {
+            let c = s[i]
+            if c == "#" && lastWasSpace {
+                return s[s.startIndex..<i]
+            }
+            lastWasSpace = (c == " " || c == "\t")
+            i = s.index(after: i)
+        }
+        return s
     }
 
     /// Body of a single-quoted value: literal until the matching `'`.
