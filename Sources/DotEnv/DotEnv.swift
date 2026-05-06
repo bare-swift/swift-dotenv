@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 // Copyright (c) 2026 The bare-swift Project Authors.
 
-/// DotEnv — replace this doc with a one-line description of the module.
-public enum DotEnv {
-    // TODO: implement the module's public API here.
-    // Remove this enum and replace with real types as the implementation grows.
-}
+/// Sendable, Foundation-free `.env` parser with `${VAR}` expansion.
+///
+/// Pure function: feed a string of `.env` contents, get back ordered
+/// ``DotEnv/Entry`` values. File I/O and process-environment mutation are
+/// intentionally out of scope.
+public enum DotEnv: Sendable {}
