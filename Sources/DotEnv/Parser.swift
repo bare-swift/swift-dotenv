@@ -164,10 +164,71 @@ enum Parser {
     }
 
     /// Read the value portion (everything after `=`).
-    /// In Task 7 only the unquoted branch is implemented; quoting + inline
-    /// comments arrive in Tasks 8 and 10.
     static func readValue(_ s: Substring, lineNumber: Int) throws(DotEnvError) -> (value: String, isLiteral: Bool, expands: Bool) {
+        if let first = s.first {
+            if first == "'" {
+                return (try readSingleQuoted(s, lineNumber: lineNumber), true, false)
+            }
+            if first == "\"" {
+                return (try readDoubleQuoted(s, lineNumber: lineNumber), false, true)
+            }
+        }
         let trimmed = trimTrailing(s)
         return (String(trimmed), false, true)
+    }
+
+    /// Body of a single-quoted value: literal until the matching `'`.
+    static func readSingleQuoted(_ s: Substring, lineNumber: Int) throws(DotEnvError) -> String {
+        precondition(s.first == "'")
+        let body = s.dropFirst()
+        var out = ""
+        var i = body.startIndex
+        while i < body.endIndex {
+            let c = body[i]
+            if c == "'" {
+                return out
+            }
+            out.append(c)
+            i = body.index(after: i)
+        }
+        throw .unterminatedQuote(line: lineNumber)
+    }
+
+    /// Body of a double-quoted value: process `\X` escape sequences until the
+    /// matching `"`. Allows embedded newlines.
+    static func readDoubleQuoted(_ s: Substring, lineNumber: Int) throws(DotEnvError) -> String {
+        precondition(s.first == "\"")
+        let body = s.dropFirst()
+        var out = ""
+        var i = body.startIndex
+        while i < body.endIndex {
+            let c = body[i]
+            if c == "\"" {
+                return out
+            }
+            if c == "\\" {
+                let next = body.index(after: i)
+                guard next < body.endIndex else {
+                    throw .unterminatedQuote(line: lineNumber)
+                }
+                let escape = body[next]
+                switch escape {
+                case "n":  out.append("\n")
+                case "r":  out.append("\r")
+                case "t":  out.append("\t")
+                case "\\": out.append("\\")
+                case "\"": out.append("\"")
+                case "'":  out.append("'")
+                case "$":  out.append("$")
+                default:
+                    throw .invalidEscape(line: lineNumber)
+                }
+                i = body.index(after: next)
+                continue
+            }
+            out.append(c)
+            i = body.index(after: i)
+        }
+        throw .unterminatedQuote(line: lineNumber)
     }
 }
